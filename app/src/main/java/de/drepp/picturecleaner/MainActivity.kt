@@ -20,7 +20,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -28,8 +27,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.drepp.picturecleaner.ui.MainViewModel
 import de.drepp.picturecleaner.ui.PermissionScreen
@@ -44,7 +43,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = dynamicLightColorScheme(LocalContext.current)) {
+            MaterialTheme(colorScheme = de.drepp.picturecleaner.ui.appColorScheme()) {
                 Surface(Modifier.fillMaxSize().safeDrawingPadding()) {
                     if (hasAccess.value) App(vm) else PermissionScreen(::openAccessSettings)
                 }
@@ -91,8 +90,8 @@ private fun App(vm: MainViewModel) {
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         Column(Modifier.padding(padding)) {
             TabRow(selectedTabIndex = tab) {
-                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Поиск") })
-                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Карантин (${quarantined.size})") })
+                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.tab_search)) })
+                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.tab_quarantine, quarantined.size)) })
             }
             progress?.let { ProgressBlock(it) }
             when (tab) {

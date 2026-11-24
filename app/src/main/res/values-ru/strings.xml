@@ -1,0 +1,60 @@
+<resources>
+    <string name="app_name">Чистка картинок</string>
+    <string name="share_label">В мусор (Чистка)</string>
+
+    <string name="tab_search">Поиск</string>
+    <string name="tab_quarantine">Карантин (%1$d)</string>
+
+    <string name="progress_of">%1$s: %2$d из %3$d</string>
+    <string name="progress_preparing">Подготовка…</string>
+    <string name="progress_checking">Проверка</string>
+    <string name="progress_reference">Образцы фото с камеры</string>
+    <string name="progress_moving">Перенос в карантин</string>
+    <string name="progress_restoring">Возврат</string>
+    <string name="progress_deleting">Удаление</string>
+    <string name="progress_preparing_delete">Подготовка к удалению</string>
+
+    <string name="scan_folders">Папки: WhatsApp (картинки, видео, GIF — без закрытых чатов и отправленных), Viber, Telegram, ChatGPT</string>
+    <string name="scan_checked">Проверено файлов: %1$d</string>
+    <string name="scan_kept">Оставлено после просмотра: %1$d</string>
+    <string name="scan_missing_embeddings">Файлов, проверенных старой версией: %1$d. Нажми «Проверить», чтобы модель могла на них учиться.</string>
+    <string name="scan_button">Проверить</string>
+    <string name="scan_documents_switch">Скриншоты, флаеры, меню, документы — тоже мусор</string>
+    <string name="model_untrained">Модель пока не обучена: учится на том, что ты удаляешь и возвращаешь.</string>
+    <string name="model_stats">Обучение: удалено %1$d, оставлено %2$d, образцов с камеры %3$d. Вес обученной модели: %4$d%%</string>
+    <string name="model_needs_more">(нужно хотя бы по 10 каждого вида)</string>
+    <string name="scan_threshold">Порог: %1$.2f — чем выше, тем меньше настоящих фото попадёт в карантин</string>
+    <string name="scan_candidates">Кандидатов: %1$d (%2$s)</string>
+    <string name="scan_move_button">Перенести в карантин: %1$d</string>
+    <string name="scan_quarantine_hint">Карантин — альбом Pictures/PictureCleaner. Там можно вернуть лишнее, а остальное удалить разом.</string>
+
+    <string name="quarantine_header">Файлов: %1$d, %2$s</string>
+    <string name="quarantine_hint">Сверху — самые сомнительные. Тап — отметить для возврата, долгое нажатие — посмотреть.</string>
+    <string name="quarantine_restore">Вернуть (%1$d)</string>
+    <string name="quarantine_delete_all">Удалить все</string>
+    <string name="preview_close">Закрыть</string>
+    <string name="preview_restore">Вернуть на место</string>
+    <string name="delete_title">Удалить файлы: %1$d?</string>
+    <string name="delete_text">Освободится %1$s. Файлы удаляются насовсем, без корзины.</string>
+    <string name="delete_confirm">Удалить</string>
+    <string name="cancel">Отмена</string>
+
+    <string name="permission_title">Нужен доступ ко всем файлам</string>
+    <string name="permission_text">Медиа WhatsApp лежат в Android/media, переносить и удалять их можно только с этим разрешением. Приложение работает офлайн и ничего никуда не отправляет.</string>
+    <string name="permission_button">Открыть настройки</string>
+
+    <string name="msg_checked">Проверено файлов: %1$d</string>
+    <string name="msg_quarantined">В карантине: %1$d</string>
+    <string name="msg_failed">не удалось: %1$d</string>
+    <string name="msg_restored">Возвращено: %1$d. Модель учтёт это при следующем отборе.</string>
+    <string name="msg_deleted">Удалено: %1$d, освобождено %2$s</string>
+    <string name="msg_purged">Возвращено из карантина в исключённые папки: %1$d</string>
+    <string name="msg_error">Ошибка: %1$s</string>
+
+    <string name="share_title">В мусор</string>
+    <string name="share_processing">Обработка %1$d из %2$d</string>
+    <string name="share_training">Дообучение…</string>
+    <string name="share_no_access">Сначала открой «Чистку картинок» и выдай доступ к файлам</string>
+    <string name="share_nothing">Нет файлов</string>
+    <string name="share_excluded">пропущено из закрытых/отправленных: %1$d</string>
+</resources>

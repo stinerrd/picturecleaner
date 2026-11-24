@@ -1,4 +1,60 @@
 <resources>
-    <string name="app_name">Чистка картинок</string>
-    <string name="share_label">В мусор (Чистка)</string>
+    <string name="app_name">Picture Cleaner</string>
+    <string name="share_label">Move to trash (Picture Cleaner)</string>
+
+    <string name="tab_search">Search</string>
+    <string name="tab_quarantine">Quarantine (%1$d)</string>
+
+    <string name="progress_of">%1$s: %2$d of %3$d</string>
+    <string name="progress_preparing">Preparing…</string>
+    <string name="progress_checking">Checking</string>
+    <string name="progress_reference">Camera sample photos</string>
+    <string name="progress_moving">Moving to quarantine</string>
+    <string name="progress_restoring">Restoring</string>
+    <string name="progress_deleting">Deleting</string>
+    <string name="progress_preparing_delete">Preparing to delete</string>
+
+    <string name="scan_folders">Folders: WhatsApp (images, videos, GIFs — except locked chats and sent media), Viber, Telegram, ChatGPT</string>
+    <string name="scan_checked">Checked files: %1$d</string>
+    <string name="scan_kept">Kept after review: %1$d</string>
+    <string name="scan_missing_embeddings">%1$d files were checked by an older version — tap “Check files” so the model can learn from them.</string>
+    <string name="scan_button">Check files</string>
+    <string name="scan_documents_switch">Screenshots, flyers, menus, documents are junk too</string>
+    <string name="model_untrained">The model is not trained yet: it learns from what you delete and restore.</string>
+    <string name="model_stats">Training: deleted %1$d, kept %2$d, camera samples %3$d. Trained model weight: %4$d%%</string>
+    <string name="model_needs_more">(needs at least 10 of each)</string>
+    <string name="scan_threshold">Threshold: %1$.2f — the higher, the fewer real photos end up in quarantine</string>
+    <string name="scan_candidates">Candidates: %1$d (%2$s)</string>
+    <string name="scan_move_button">Move %1$d to quarantine</string>
+    <string name="scan_quarantine_hint">Quarantine is the Pictures/PictureCleaner album. Restore what you want to keep there and delete the rest at once.</string>
+
+    <string name="quarantine_header">%1$d files, %2$s</string>
+    <string name="quarantine_hint">Most doubtful first. Tap to mark for restoring, long press to view.</string>
+    <string name="quarantine_restore">Restore (%1$d)</string>
+    <string name="quarantine_delete_all">Delete all</string>
+    <string name="preview_close">Close</string>
+    <string name="preview_restore">Put back</string>
+    <string name="delete_title">Delete %1$d files?</string>
+    <string name="delete_text">This frees %1$s. Files are deleted permanently, without a recycle bin.</string>
+    <string name="delete_confirm">Delete</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="permission_title">Access to all files is required</string>
+    <string name="permission_text">WhatsApp media lives in Android/media and can only be moved or deleted with this permission. The app works offline and sends nothing anywhere.</string>
+    <string name="permission_button">Open settings</string>
+
+    <string name="msg_checked">Files checked: %1$d</string>
+    <string name="msg_quarantined">In quarantine: %1$d</string>
+    <string name="msg_failed">failed: %1$d</string>
+    <string name="msg_restored">Restored: %1$d. The model will take this into account.</string>
+    <string name="msg_deleted">Deleted %1$d, freed %2$s</string>
+    <string name="msg_purged">Returned from quarantine to excluded folders: %1$d</string>
+    <string name="msg_error">Error: %1$s</string>
+
+    <string name="share_title">Move to trash</string>
+    <string name="share_processing">Processing %1$d of %2$d</string>
+    <string name="share_training">Training…</string>
+    <string name="share_no_access">Open Picture Cleaner first and grant file access</string>
+    <string name="share_nothing">No files</string>
+    <string name="share_excluded">skipped from locked chats/sent: %1$d</string>
 </resources>

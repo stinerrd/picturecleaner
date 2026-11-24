@@ -2,6 +2,9 @@ package de.drepp.picturecleaner.ui
 
 import android.app.Application
 import android.content.Context
+import android.text.format.Formatter
+import androidx.annotation.StringRes
+import de.drepp.picturecleaner.R
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import coil.imageLoader
@@ -27,7 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-data class Progress(val label: String, val done: Int, val total: Int)
+data class Progress(@StringRes val label: Int, val done: Int, val total: Int)
 
 data class ScanSummary(
     val scored: Int = 0,
@@ -113,7 +116,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 dao.insertAll(entries)
                 done += batch.size
-                progress.value = Progress("Проверка", done, total)
+                progress.value = Progress(R.string.progress_checking, done, total)
             }
 
             missing.chunked(BATCH).forEach { batch ->
@@ -128,7 +131,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         .map { Label(it.originalPath, it.embedding!!, junk = false) },
                 )
                 done += batch.size
-                progress.value = Progress("Проверка", done, total)
+                progress.value = Progress(R.string.progress_checking, done, total)
             }
 
             references.chunked(BATCH).forEach { batch ->
@@ -139,18 +142,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     },
                 )
                 done += batch.size
-                progress.value = Progress("Образцы фото с камеры", done, total)
+                progress.value = Progress(R.string.progress_reference, done, total)
             }
         }
         rescoreAll()
-        message.value = "Проверено картинок: $total"
+        message.value = str(R.string.msg_checked, total)
     }
 
     fun moveCandidates() = runBusy {
         val candidates = dao.candidates(threshold.value)
         var failed = 0
         candidates.forEachIndexed { i, entry ->
-            progress.value = Progress("Перенос в карантин", i, candidates.size)
+            progress.value = Progress(R.string.progress_moving, i, candidates.size)
             val source = File(entry.currentPath)
             if (!source.exists()) {
                 dao.delete(entry.id)
@@ -160,7 +163,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (moved == null) failed++
             else dao.update(entry.copy(currentPath = moved.path, state = ImageState.QUARANTINED))
         }
-        message.value = "В карантине: ${candidates.size - failed}" + if (failed > 0) ", не удалось: $failed" else ""
+        message.value = str(R.string.msg_quarantined, candidates.size - failed) + if (failed > 0) ", " + str(R.string.msg_failed, failed) else ""
     }
 
     fun restoreSelected() = runBusy {
@@ -168,7 +171,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val entries = dao.quarantined().filter { it.id in ids }
         val decided = mutableListOf<Label>()
         entries.forEachIndexed { i, entry ->
-            progress.value = Progress("Возврат", i, entries.size)
+            progress.value = Progress(R.string.progress_restoring, i, entries.size)
             val back = quarantine.moveBack(File(entry.currentPath), entry.originalPath) ?: return@forEachIndexed
             dao.update(entry.copy(currentPath = back.path, state = ImageState.KEPT))
             entry.embedding?.let { decided += Label(entry.originalPath, it, junk = false) }
@@ -176,7 +179,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         labels.upsert(decided)
         selected.value = emptySet()
         rescoreAll()
-        message.value = "Возвращено: ${entries.size}. Модель учтёт это при следующем отборе."
+        message.value = str(R.string.msg_restored, entries.size)
     }
 
     fun deleteAllQuarantined() = runBusy {
@@ -185,7 +188,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         var deleted = 0
         val decided = mutableListOf<Label>()
         entries.forEachIndexed { i, entry ->
-            progress.value = Progress("Удаление", i, entries.size)
+            progress.value = Progress(R.string.progress_deleting, i, entries.size)
             val file = File(entry.currentPath)
             val size = file.length()
             if (quarantine.delete(file)) {
@@ -198,7 +201,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         labels.upsert(decided)
         selected.value = emptySet()
         rescoreAll()
-        message.value = "Удалено $deleted, освобождено ${formatBytes(freed)}"
+        message.value = str(R.string.msg_deleted, deleted, formatBytes(getApplication(), freed))
     }
 
     /** Досчитывает эмбеддинги перед удалением: после удаления файла метку уже не получить. */
@@ -208,7 +211,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val filled = HashMap<Long, ImageEntry>()
         ClipClassifier(getApplication()).use { classifier ->
             missing.forEachIndexed { i, entry ->
-                progress.value = Progress("Подготовка к удалению", i, missing.size)
+                progress.value = Progress(R.string.progress_preparing_delete, i, missing.size)
                 runCatching { classifier.embed(File(entry.currentPath)) }.getOrNull()?.let {
                     filled[entry.id] = entry.copy(embedding = it.toBytes())
                 }
@@ -254,12 +257,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
         getApplication<Application>().imageLoader.diskCache?.clear()
         getApplication<Application>().imageLoader.memoryCache?.clear()
-        if (restored > 0) message.value = "Возвращено из карантина в исключённые папки: $restored"
+        if (restored > 0) message.value = str(R.string.msg_purged, restored)
     }
 
     private suspend fun buildRanker(): Ranker = scoring.buildRanker()
 
     private suspend fun rescoreAll() = scoring.rescoreAll()
+
+    private fun str(@StringRes id: Int, vararg args: Any): String = getApplication<Application>().getString(id, *args)
 
     fun toggle(id: Long) = selected.update { if (id in it) it - id else it + id }
 
@@ -269,12 +274,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun runBusy(block: suspend () -> Unit) {
         if (progress.value != null) return
-        progress.value = Progress("", 0, 0)
+        progress.value = Progress(R.string.progress_preparing, 0, 0)
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { block() }
             } catch (e: Exception) {
-                message.value = "Ошибка: ${e.message}"
+                message.value = str(R.string.msg_error, e.message.orEmpty())
             } finally {
                 progress.value = null
             }
@@ -290,8 +295,4 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 }
 
-fun formatBytes(bytes: Long): String = when {
-    bytes >= 1L shl 30 -> "%.1f ГБ".format(bytes / (1L shl 30).toDouble())
-    bytes >= 1L shl 20 -> "%.0f МБ".format(bytes / (1L shl 20).toDouble())
-    else -> "%.0f КБ".format(bytes / 1024.0)
-}
+fun formatBytes(context: Context, bytes: Long): String = Formatter.formatShortFileSize(context, bytes)

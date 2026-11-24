@@ -47,6 +47,20 @@ Android-приложение: находит в мессенджерных па�
 - Нужно разрешение `MANAGE_EXTERNAL_STORAGE`: без него в `Android/media` не
   переносить. Приложение личное, в Play не публикуется.
 
+## Языки
+
+Строки только в ресурсах: `values` (английский, он же запасной), `values-ru`,
+`values-de`. Новая строка добавляется во все три файла; в Kotlin текста нет.
+Размеры файлов — `Formatter.formatShortFileSize`, единицы локализует система.
+
+## Лицензии
+
+Репозиторий публичный. Код — MIT (`LICENSE`). Веса в `assets/` — производная
+модели Apple MobileCLIP2-S0 под Apple ML Research Model License
+(`LICENSE-MODEL`, только некоммерческие исследования). При замене или
+переэкспорте модели обновить раздел License в `README.md` и `LICENSE-MODEL`.
+Личные пути и данные в коммитах не оставлять.
+
 ## Модель
 
 `app/src/main/assets/clip_visual.onnx` и `clip_text.json` собираются скриптом и
@@ -76,7 +90,7 @@ export JAVA_HOME=<path-to-jdk-17>
 ./gradlew testDebugUnitTest assembleDebug
 ```
 
-Установка через `adb.exe` Windows, как в `../pumpshot/CLAUDE.md`:
+В WSL USB недоступен — установка через `adb.exe` Windows:
 
 ```bash
 ADBW=/mnt/c/path/to/platform-tools/adb.exe

@@ -1,0 +1,60 @@
+<resources>
+    <string name="app_name">Bilder aufräumen</string>
+    <string name="share_label">In den Müll (Bilder aufräumen)</string>
+
+    <string name="tab_search">Suche</string>
+    <string name="tab_quarantine">Quarantäne (%1$d)</string>
+
+    <string name="progress_of">%1$s: %2$d von %3$d</string>
+    <string name="progress_preparing">Vorbereitung…</string>
+    <string name="progress_checking">Prüfung</string>
+    <string name="progress_reference">Beispielfotos der Kamera</string>
+    <string name="progress_moving">Verschieben in Quarantäne</string>
+    <string name="progress_restoring">Wiederherstellen</string>
+    <string name="progress_deleting">Löschen</string>
+    <string name="progress_preparing_delete">Löschen wird vorbereitet</string>
+
+    <string name="scan_folders">Ordner: WhatsApp (Bilder, Videos, GIFs — ohne gesperrte Chats und Gesendetes), Viber, Telegram, ChatGPT</string>
+    <string name="scan_checked">Geprüfte Dateien: %1$d</string>
+    <string name="scan_kept">Nach Durchsicht behalten: %1$d</string>
+    <string name="scan_missing_embeddings">Von einer älteren Version geprüfte Dateien: %1$d. Tippe auf „Prüfen“, damit das Modell daraus lernen kann.</string>
+    <string name="scan_button">Prüfen</string>
+    <string name="scan_documents_switch">Screenshots, Flyer, Speisekarten, Dokumente sind auch Müll</string>
+    <string name="model_untrained">Das Modell ist noch nicht trainiert: Es lernt aus dem, was du löschst und wiederherstellst.</string>
+    <string name="model_stats">Training: gelöscht %1$d, behalten %2$d, Kamerabeispiele %3$d. Gewicht des trainierten Modells: %4$d%%</string>
+    <string name="model_needs_more">(mindestens je 10 nötig)</string>
+    <string name="scan_threshold">Schwelle: %1$.2f — je höher, desto weniger echte Fotos landen in der Quarantäne</string>
+    <string name="scan_candidates">Kandidaten: %1$d (%2$s)</string>
+    <string name="scan_move_button">In Quarantäne verschieben: %1$d</string>
+    <string name="scan_quarantine_hint">Die Quarantäne ist das Album Pictures/PictureCleaner. Dort kannst du Falsches zurückholen und den Rest auf einmal löschen.</string>
+
+    <string name="quarantine_header">Dateien: %1$d, %2$s</string>
+    <string name="quarantine_hint">Die zweifelhaftesten zuerst. Tippen markiert zum Wiederherstellen, langes Drücken zeigt die Datei.</string>
+    <string name="quarantine_restore">Wiederherstellen (%1$d)</string>
+    <string name="quarantine_delete_all">Alle löschen</string>
+    <string name="preview_close">Schließen</string>
+    <string name="preview_restore">Zurücklegen</string>
+    <string name="delete_title">Dateien löschen: %1$d?</string>
+    <string name="delete_text">Es werden %1$s frei. Die Dateien werden endgültig gelöscht, ohne Papierkorb.</string>
+    <string name="delete_confirm">Löschen</string>
+    <string name="cancel">Abbrechen</string>
+
+    <string name="permission_title">Zugriff auf alle Dateien nötig</string>
+    <string name="permission_text">WhatsApp-Medien liegen in Android/media und lassen sich nur mit dieser Berechtigung verschieben oder löschen. Die App arbeitet offline und sendet nichts.</string>
+    <string name="permission_button">Einstellungen öffnen</string>
+
+    <string name="msg_checked">Geprüfte Dateien: %1$d</string>
+    <string name="msg_quarantined">In Quarantäne: %1$d</string>
+    <string name="msg_failed">fehlgeschlagen: %1$d</string>
+    <string name="msg_restored">Wiederhergestellt: %1$d. Das Modell berücksichtigt das bei der nächsten Auswahl.</string>
+    <string name="msg_deleted">Gelöscht: %1$d, frei geworden: %2$s</string>
+    <string name="msg_purged">Aus der Quarantäne in ausgeschlossene Ordner zurückgelegt: %1$d</string>
+    <string name="msg_error">Fehler: %1$s</string>
+
+    <string name="share_title">In den Müll</string>
+    <string name="share_processing">Verarbeite %1$d von %2$d</string>
+    <string name="share_training">Training…</string>
+    <string name="share_no_access">Öffne zuerst „Bilder aufräumen“ und erlaube den Dateizugriff</string>
+    <string name="share_nothing">Keine Dateien</string>
+    <string name="share_excluded">übersprungen aus gesperrten Chats/Gesendetem: %1$d</string>
+</resources>

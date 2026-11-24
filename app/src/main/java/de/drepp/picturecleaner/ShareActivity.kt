@@ -16,10 +16,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import de.drepp.picturecleaner.classify.ClipClassifier
@@ -41,16 +40,17 @@ import java.io.File
  * становится примером «мусор» для персональной модели.
  */
 class ShareActivity : ComponentActivity() {
-    private val status = mutableStateOf("Подготовка…")
+    private val status = mutableStateOf("")
     private val fraction = mutableStateOf(0f)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        status.value = getString(R.string.progress_preparing)
         setContent {
-            MaterialTheme(colorScheme = dynamicLightColorScheme(LocalContext.current)) {
+            MaterialTheme(colorScheme = de.drepp.picturecleaner.ui.appColorScheme()) {
                 Card {
                     Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("В мусор", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.share_title), style = MaterialTheme.typography.titleMedium)
                         Text(status.value)
                         LinearProgressIndicator(progress = { fraction.value })
                     }
@@ -59,12 +59,12 @@ class ShareActivity : ComponentActivity() {
         }
 
         if (!Environment.isExternalStorageManager()) {
-            finishWith("Сначала открой «Чистку картинок» и выдай доступ к файлам")
+            finishWith(getString(R.string.share_no_access))
             return
         }
         val uris = sharedUris(intent)
         if (uris.isEmpty()) {
-            finishWith("Нет картинок")
+            finishWith(getString(R.string.share_nothing))
             return
         }
         lifecycleScope.launch {
@@ -84,7 +84,7 @@ class ShareActivity : ComponentActivity() {
 
         ClipClassifier(this).use { classifier ->
             uris.forEachIndexed { i, uri ->
-                status.value = "Обработка ${i + 1} из ${uris.size}"
+                status.value = getString(R.string.share_processing, i + 1, uris.size)
                 fraction.value = i.toFloat() / uris.size
                 val file = resolveFile(uri)
                 when {
@@ -116,13 +116,13 @@ class ShareActivity : ComponentActivity() {
             }
         }
         db.labels().upsert(labels)
-        status.value = "Дообучение…"
+        status.value = getString(R.string.share_training)
         Scoring.get(this).rescoreAll()
 
         return buildString {
-            append("В карантине: $moved")
-            if (excluded > 0) append(", пропущено из закрытых/отправленных: $excluded")
-            if (failed > 0) append(", не удалось: $failed")
+            append(getString(R.string.msg_quarantined, moved))
+            if (excluded > 0) append(", ").append(getString(R.string.share_excluded, excluded))
+            if (failed > 0) append(", ").append(getString(R.string.msg_failed, failed))
         }
     }
 

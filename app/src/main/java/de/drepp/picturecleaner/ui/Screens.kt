@@ -40,6 +40,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import de.drepp.picturecleaner.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -53,7 +56,7 @@ import java.io.File
 @Composable
 fun ProgressBlock(progress: Progress) {
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Text(if (progress.total > 0) "${progress.label}: ${progress.done} из ${progress.total}" else "Подготовка…")
+        Text(if (progress.total > 0) stringResource(R.string.progress_of, stringResource(progress.label), progress.done, progress.total) else stringResource(R.string.progress_preparing))
         if (progress.total > 0) {
             LinearProgressIndicator(
                 progress = { progress.done.toFloat() / progress.total },
@@ -81,41 +84,40 @@ fun ScanScreen(
         Modifier.padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Папки: WhatsApp (картинки, видео, GIF — без закрытых чатов и отправленных), Viber, Telegram, ChatGPT", style = MaterialTheme.typography.bodySmall)
-        Text("Проверено картинок: ${summary.scored}")
-        if (summary.kept > 0) Text("Оставлено после просмотра: ${summary.kept}", style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.scan_folders), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.scan_checked, summary.scored))
+        if (summary.kept > 0) Text(stringResource(R.string.scan_kept, summary.kept), style = MaterialTheme.typography.bodySmall)
         if (summary.missingEmbeddings > 0) {
             Text(
-                "${summary.missingEmbeddings} картинок проверены старой версией — нажми «Проверить», чтобы модель могла на них учиться.",
+                stringResource(R.string.scan_missing_embeddings, summary.missingEmbeddings),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
         }
         Button(onClick = onScan, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-            Text("Проверить картинки")
+            Text(stringResource(R.string.scan_button))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Скриншоты, флаеры, меню, документы — тоже мусор", modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.scan_documents_switch), modifier = Modifier.weight(1f))
             Switch(checked = includeDocuments, onCheckedChange = onIncludeDocuments, enabled = !busy)
         }
         Text(
-            if (model.junk + model.keep == 0) "Модель пока не обучена: учится на том, что ты удаляешь и возвращаешь."
-            else "Обучение: удалено ${model.junk}, оставлено ${model.keep}, образцов с камеры ${model.reference}. " +
-                "Вес обученной модели: ${(model.personalWeight * 100).toInt()}%" +
-                if (model.personalWeight == 0f) " (нужно хотя бы по 10 каждого вида)" else "",
+            if (model.junk + model.keep == 0) stringResource(R.string.model_untrained)
+            else stringResource(R.string.model_stats, model.junk, model.keep, model.reference, (model.personalWeight * 100).toInt()) +
+                if (model.personalWeight == 0f) " " + stringResource(R.string.model_needs_more) else "",
             style = MaterialTheme.typography.bodySmall,
         )
-        Text("Порог: %.2f — чем выше, тем меньше настоящих фото попадёт в карантин".format(threshold))
+        Text(stringResource(R.string.scan_threshold, threshold))
         Slider(value = threshold, onValueChange = onThreshold, valueRange = 0.2f..0.95f, enabled = !busy)
         Text(
-            "Кандидатов: ${summary.candidates} (${formatBytes(summary.candidateBytes)})",
+            stringResource(R.string.scan_candidates, summary.candidates, formatBytes(LocalContext.current, summary.candidateBytes)),
             style = MaterialTheme.typography.titleMedium,
         )
         Button(onClick = onMove, enabled = !busy && summary.candidates > 0, modifier = Modifier.fillMaxWidth()) {
-            Text("Перенести ${summary.candidates} в карантин")
+            Text(stringResource(R.string.scan_move_button, summary.candidates))
         }
         Text(
-            "Карантин — альбом Pictures/PictureCleaner. Там можно вернуть лишнее, а остальное удалить разом.",
+            stringResource(R.string.scan_quarantine_hint),
             style = MaterialTheme.typography.bodySmall,
         )
     }
@@ -138,14 +140,14 @@ fun QuarantineScreen(
 
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Text("${items.size} картинок, ${formatBytes(totalBytes)}", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.quarantine_header, items.size, formatBytes(LocalContext.current, totalBytes)), style = MaterialTheme.typography.titleMedium)
             Text(
-                "Сверху — самые сомнительные. Тап — отметить для возврата, долгое нажатие — посмотреть.",
+                stringResource(R.string.quarantine_hint),
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
                 OutlinedButton(onClick = onRestoreSelected, enabled = !busy && selected.isNotEmpty(), modifier = Modifier.weight(1f)) {
-                    Text("Вернуть (${selected.size})")
+                    Text(stringResource(R.string.quarantine_restore, selected.size))
                 }
                 Button(
                     onClick = { confirmDelete = true },
@@ -153,7 +155,7 @@ fun QuarantineScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Удалить все")
+                    Text(stringResource(R.string.quarantine_delete_all))
                 }
             }
         }
@@ -223,16 +225,16 @@ fun QuarantineScreen(
                     )
                 }
                 Text(
-                    File(entry.originalPath).parentFile?.name.orEmpty() + " · " + formatBytes(entry.sizeBytes),
+                    File(entry.originalPath).parentFile?.name.orEmpty() + " · " + formatBytes(LocalContext.current, entry.sizeBytes),
                     color = Color.White,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { preview = null }, modifier = Modifier.weight(1f)) {
-                        Text("Закрыть", color = Color.White)
+                        Text(stringResource(R.string.preview_close), color = Color.White)
                     }
                     Button(onClick = { onRestoreOne(entry.id); preview = null }, enabled = !busy, modifier = Modifier.weight(1f)) {
-                        Text("Вернуть на место")
+                        Text(stringResource(R.string.preview_restore))
                     }
                 }
             }
@@ -242,13 +244,13 @@ fun QuarantineScreen(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Удалить ${items.size} картинок?") },
-            text = { Text("Освободится ${formatBytes(totalBytes)}. Файлы удаляются насовсем, без корзины.") },
+            title = { Text(stringResource(R.string.delete_title, items.size)) },
+            text = { Text(stringResource(R.string.delete_text, formatBytes(LocalContext.current, totalBytes))) },
             confirmButton = {
-                TextButton(onClick = { confirmDelete = false; onDeleteAll() }) { Text("Удалить") }
+                TextButton(onClick = { confirmDelete = false; onDeleteAll() }) { Text(stringResource(R.string.delete_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) { Text("Отмена") }
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -257,11 +259,10 @@ fun QuarantineScreen(
 @Composable
 fun PermissionScreen(onGrant: () -> Unit) {
     Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Нужен доступ ко всем файлам", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.permission_title), style = MaterialTheme.typography.titleLarge)
         Text(
-            "Картинки WhatsApp лежат в Android/media, переносить и удалять их можно только с этим разрешением. " +
-                "Приложение работает офлайн и ничего никуда не отправляет.",
+            stringResource(R.string.permission_text),
         )
-        Button(onClick = onGrant) { Text("Открыть настройки") }
+        Button(onClick = onGrant) { Text(stringResource(R.string.permission_button)) }
     }
 }
