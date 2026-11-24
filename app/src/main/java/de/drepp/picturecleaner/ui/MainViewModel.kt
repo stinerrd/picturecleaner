@@ -37,7 +37,7 @@ data class ScanSummary(
     val missingEmbeddings: Int = 0,
 )
 
-data class ModelInfo(val junk: Int = 0, val keep: Int = 0, val personalWeight: Float = 0f)
+data class ModelInfo(val junk: Int = 0, val keep: Int = 0, val reference: Int = 0, val personalWeight: Float = 0f)
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val db = AppDatabase.get(app)
@@ -61,10 +61,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         ScanSummary(scored.size, hits.size, hits.sumOf { it.sizeBytes }, kept, missing)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ScanSummary())
 
-    val modelInfo: StateFlow<ModelInfo> = combine(labels.observeCounts(), personalWeight) { counts, w ->
+    val modelInfo: StateFlow<ModelInfo> = combine(labels.observeCounts(), labels.observeReferenceCount(), personalWeight) { counts, reference, w ->
         ModelInfo(
             junk = counts.firstOrNull { it.junk }?.count ?: 0,
-            keep = counts.firstOrNull { !it.junk }?.count ?: 0,
+            keep = (counts.firstOrNull { !it.junk }?.count ?: 0) - reference,
+            reference = reference,
             personalWeight = w,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ModelInfo())
@@ -87,7 +88,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val known = dao.knownPaths().toHashSet()
         val newFiles = Sources.listImages().filter { it.path !in known }
         val missing = dao.withoutEmbedding().filter { File(it.currentPath).exists() }
-        val total = newFiles.size + missing.size
+        val labeled = labels.all().map { it.originalPath }.toHashSet()
+        val haveReferences = labeled.count(Sources::isReference)
+        val references = Sources.listReferencePhotos()
+            .filter { it.path !in labeled }
+            .shuffled()
+            .take((REFERENCE_PHOTOS - haveReferences).coerceAtLeast(0))
+        val total = newFiles.size + missing.size + references.size
         var done = 0
         val ranker = buildRanker()
 
@@ -122,6 +129,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 )
                 done += batch.size
                 progress.value = Progress("Проверка", done, total)
+            }
+
+            references.chunked(BATCH).forEach { batch ->
+                labels.upsert(
+                    batch.mapNotNull { file ->
+                        runCatching { classifier.embed(file) }.getOrNull()
+                            ?.let { Label(file.path, it.toBytes(), junk = false) }
+                    },
+                )
+                done += batch.size
+                progress.value = Progress("Образцы фото с камеры", done, total)
             }
         }
         rescoreAll()
@@ -264,10 +282,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     companion object {
-        const val DEFAULT_THRESHOLD = 0.5f
+        const val DEFAULT_THRESHOLD = 0.8f
+        private const val REFERENCE_PHOTOS = 300
         const val UNREADABLE = -1f
         private const val BATCH = 16
-        private const val KEY_THRESHOLD = "threshold"
+        private const val KEY_THRESHOLD = "threshold_v2"
     }
 }
 

@@ -24,6 +24,19 @@ object Sources {
 
     fun isExcluded(path: String): Boolean = excludedDirs.any { path.contains(it) }
 
+    /**
+     * Заведомо настоящие фото. Не кандидаты — только образцы «оставить» для
+     * персональной модели: без них она видит лишь удалённые открытки и не
+     * знает, куда девать обычные семейные фото.
+     */
+    val referenceFolder: File get() = File(root, "DCIM/Camera")
+
+    fun isReference(path: String): Boolean = path.startsWith(referenceFolder.path + "/")
+
+    fun listReferencePhotos(): List<File> = referenceFolder.listFiles()
+        ?.filter { it.isFile && !it.name.startsWith(".") && it.extension.lowercase() in extensions }
+        .orEmpty()
+
     fun listImages(): List<File> = folders.filter { it.isDirectory }.flatMap { dir ->
         dir.walkTopDown()
             .onEnter { !it.name.startsWith(".") && !isExcluded(it.path + "/") }

@@ -96,7 +96,8 @@ fun ScanScreen(
         }
         Text(
             if (model.junk + model.keep == 0) "Модель пока не обучена: учится на том, что ты удаляешь и возвращаешь."
-            else "Обучение: удалено ${model.junk}, оставлено ${model.keep}. Вес твоих решений: ${(model.personalWeight * 100).toInt()}%" +
+            else "Обучение: удалено ${model.junk}, оставлено ${model.keep}, образцов с камеры ${model.reference}. " +
+                "Вес обученной модели: ${(model.personalWeight * 100).toInt()}%" +
                 if (model.personalWeight == 0f) " (нужно хотя бы по 10 каждого вида)" else "",
             style = MaterialTheme.typography.bodySmall,
         )

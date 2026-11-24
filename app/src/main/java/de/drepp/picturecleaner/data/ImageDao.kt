@@ -70,6 +70,9 @@ interface LabelDao {
     @Query("DELETE FROM labels WHERE originalPath = :path")
     suspend fun delete(path: String)
 
+    @Query("SELECT COUNT(*) FROM labels WHERE originalPath LIKE '%/DCIM/Camera/%'")
+    fun observeReferenceCount(): Flow<Int>
+
     @Query("SELECT junk, COUNT(*) AS count FROM labels GROUP BY junk")
     fun observeCounts(): Flow<List<LabelCount>>
 }
