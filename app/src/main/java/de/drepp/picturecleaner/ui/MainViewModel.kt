@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import coil.imageLoader
 import de.drepp.picturecleaner.classify.ClipClassifier
 import de.drepp.picturecleaner.classify.Ranker
+import de.drepp.picturecleaner.classify.Scoring
 import de.drepp.picturecleaner.classify.toBytes
 import de.drepp.picturecleaner.classify.toFloats
 import de.drepp.picturecleaner.data.AppDatabase
@@ -23,8 +24,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -46,15 +45,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val labels = db.labels()
     private val quarantine = Quarantine(app)
     private val prefs = app.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    private val scorer by lazy { ClipClassifier.loadScorer(app) }
-    private val rankLock = Mutex()
+    private val scoring = Scoring.get(app)
 
     val threshold = MutableStateFlow(prefs.getFloat(KEY_THRESHOLD, DEFAULT_THRESHOLD))
-    val includeDocuments = MutableStateFlow(prefs.getBoolean(KEY_DOCUMENTS, true))
+    val includeDocuments = MutableStateFlow(scoring.includeDocuments)
     val progress = MutableStateFlow<Progress?>(null)
     val selected = MutableStateFlow<Set<Long>>(emptySet())
     val message = MutableStateFlow<String?>(null)
-    private val personalWeight = MutableStateFlow(0f)
+    private val personalWeight = scoring.personalWeight
 
     val summary: StateFlow<ScanSummary> = combine(
         dao.observeScored(), dao.observeKeptCount(), dao.observeMissingEmbeddings(), threshold,
@@ -81,7 +79,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setIncludeDocuments(value: Boolean) {
         includeDocuments.value = value
-        prefs.edit().putBoolean(KEY_DOCUMENTS, value).apply()
+        scoring.includeDocuments = value
         runBusy { rescoreAll() }
     }
 
@@ -214,13 +212,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 dao.delete(entry.id)
             }
         }
-        if (!rankerReady) {
-            rankerReady = true
-            rescoreAll()
-        }
+        rescoreAll()
     }
-
-    private var rankerReady = false
 
     /**
      * Картинки из исключённых папок возвращаются на место и забываются
@@ -246,24 +239,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (restored > 0) message.value = "Возвращено из карантина в исключённые папки: $restored"
     }
 
-    private suspend fun buildRanker(): Ranker = withContext(Dispatchers.Default) {
-        val all = labels.all()
-        Ranker.build(scorer, includeDocuments.value, all.map { it.embedding.toFloats() }, all.map { it.junk })
-            .also { personalWeight.value = it.personalWeight }
-    }
+    private suspend fun buildRanker(): Ranker = scoring.buildRanker()
 
-    /** Переобучает персональную модель и пересчитывает баллы по сохранённым эмбеддингам. */
-    private suspend fun rescoreAll() = rankLock.withLock {
-        val ranker = buildRanker()
-        val rows = dao.withEmbedding()
-        val updated = withContext(Dispatchers.Default) {
-            rows.mapNotNull { entry ->
-                val score = ranker.score(entry.embedding!!.toFloats())
-                if (score != entry.score) entry.copy(score = score) else null
-            }
-        }
-        updated.chunked(500).forEach { dao.updateAll(it) }
-    }
+    private suspend fun rescoreAll() = scoring.rescoreAll()
 
     fun toggle(id: Long) = selected.update { if (id in it) it - id else it + id }
 
@@ -290,7 +268,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         const val UNREADABLE = -1f
         private const val BATCH = 16
         private const val KEY_THRESHOLD = "threshold"
-        private const val KEY_DOCUMENTS = "includeDocuments"
     }
 }
 
