@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
@@ -25,6 +27,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -61,19 +64,42 @@ fun ProgressBlock(progress: Progress) {
 @Composable
 fun ScanScreen(
     summary: ScanSummary,
+    model: ModelInfo,
     threshold: Float,
+    includeDocuments: Boolean,
     busy: Boolean,
     onThreshold: (Float) -> Unit,
+    onIncludeDocuments: (Boolean) -> Unit,
     onScan: () -> Unit,
     onMove: () -> Unit,
 ) {
-    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Папки: WhatsApp Images, Viber, Telegram, ChatGPT", style = MaterialTheme.typography.bodySmall)
+    Column(
+        Modifier.padding(16.dp).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Папки: WhatsApp Images (без закрытых чатов и отправленных), Viber, Telegram, ChatGPT", style = MaterialTheme.typography.bodySmall)
         Text("Проверено картинок: ${summary.scored}")
         if (summary.kept > 0) Text("Оставлено после просмотра: ${summary.kept}", style = MaterialTheme.typography.bodySmall)
-        Button(onClick = onScan, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-            Text("Проверить новые картинки")
+        if (summary.missingEmbeddings > 0) {
+            Text(
+                "${summary.missingEmbeddings} картинок проверены старой версией — нажми «Проверить», чтобы модель могла на них учиться.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
+        Button(onClick = onScan, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Проверить картинки")
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Скриншоты, флаеры, меню, документы — тоже мусор", modifier = Modifier.weight(1f))
+            Switch(checked = includeDocuments, onCheckedChange = onIncludeDocuments, enabled = !busy)
+        }
+        Text(
+            if (model.junk + model.keep == 0) "Модель пока не обучена: учится на том, что ты удаляешь и возвращаешь."
+            else "Обучение: удалено ${model.junk}, оставлено ${model.keep}. Вес твоих решений: ${(model.personalWeight * 100).toInt()}%" +
+                if (model.personalWeight == 0f) " (нужно хотя бы по 10 каждого вида)" else "",
+            style = MaterialTheme.typography.bodySmall,
+        )
         Text("Порог: %.2f — чем выше, тем меньше настоящих фото попадёт в карантин".format(threshold))
         Slider(value = threshold, onValueChange = onThreshold, valueRange = 0.2f..0.95f, enabled = !busy)
         Text(

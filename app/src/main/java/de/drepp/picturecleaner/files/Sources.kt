@@ -16,8 +16,11 @@ object Sources {
 
     private val extensions = setOf("jpg", "jpeg", "png", "webp")
 
-    /** Медиа заблокированных чатов WhatsApp: их не сканируем и не трогаем. */
-    private val excludedDirs = listOf("/WhatsApp Images/Private/")
+    /**
+     * Не сканируем и не трогаем: медиа заблокированных чатов WhatsApp и то,
+     * что пользователь отправил сам.
+     */
+    private val excludedDirs = listOf("/WhatsApp Images/Private/", "/WhatsApp Images/Sent/")
 
     fun isExcluded(path: String): Boolean = excludedDirs.any { path.contains(it) }
 

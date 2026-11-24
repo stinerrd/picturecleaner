@@ -15,36 +15,23 @@ import kotlin.math.roundToInt
 class ClipClassifier(context: Context) : AutoCloseable {
     private val env = OrtEnvironment.getEnvironment()
     private val session: OrtSession
-    private val scorer: ClipScorer
 
     init {
         val model = context.assets.open("clip_visual.onnx").use { it.readBytes() }
         session = env.createSession(model, OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
-
-        val json = JSONObject(context.assets.open("clip_text.json").bufferedReader().use { it.readText() })
-        val groupsJson = json.getJSONObject("groups")
-        val groups = groupsJson.keys().asSequence().associateWith { name ->
-            val rows = groupsJson.getJSONArray(name)
-            List(rows.length()) { i ->
-                val row = rows.getJSONArray(i)
-                FloatArray(row.length()) { j -> row.getDouble(j).toFloat() }
-            }
-        }
-        scorer = ClipScorer(groups, json.getDouble("logitScale").toFloat())
     }
 
-    /** Вероятность группы "generated"; null, если файл не декодируется. */
-    fun generatedScore(file: File): Float? {
+    /** Эмбеддинг CLIP; null, если файл не декодируется. */
+    fun embed(file: File): FloatArray? {
         val bitmap = decode(file) ?: return null
         val input = toChw(bitmap)
         bitmap.recycle()
-        val embedding = OnnxTensor.createTensor(env, FloatBuffer.wrap(input), longArrayOf(1, 3, SIZE.toLong(), SIZE.toLong())).use { tensor ->
+        return OnnxTensor.createTensor(env, FloatBuffer.wrap(input), longArrayOf(1, 3, SIZE.toLong(), SIZE.toLong())).use { tensor ->
             session.run(mapOf("image" to tensor)).use { result ->
                 @Suppress("UNCHECKED_CAST")
                 (result[0].value as Array<FloatArray>)[0]
             }
         }
-        return scorer.score(embedding)["generated"]
     }
 
     private fun decode(file: File): Bitmap? {
@@ -85,5 +72,18 @@ class ClipClassifier(context: Context) : AutoCloseable {
 
     companion object {
         const val SIZE = 256
+
+        fun loadScorer(context: Context): ClipScorer {
+            val json = JSONObject(context.assets.open("clip_text.json").bufferedReader().use { it.readText() })
+            val groupsJson = json.getJSONObject("groups")
+            val groups = groupsJson.keys().asSequence().associateWith { name ->
+                val rows = groupsJson.getJSONArray(name)
+                List(rows.length()) { i ->
+                    val row = rows.getJSONArray(i)
+                    FloatArray(row.length()) { j -> row.getDouble(j).toFloat() }
+                }
+            }
+            return ClipScorer(groups, json.getDouble("logitScale").toFloat())
+        }
     }
 }

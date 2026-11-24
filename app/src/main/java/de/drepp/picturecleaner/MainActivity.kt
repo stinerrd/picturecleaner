@@ -69,6 +69,8 @@ class MainActivity : ComponentActivity() {
 private fun App(vm: MainViewModel) {
     val summary by vm.summary.collectAsStateWithLifecycle()
     val threshold by vm.threshold.collectAsStateWithLifecycle()
+    val includeDocuments by vm.includeDocuments.collectAsStateWithLifecycle()
+    val model by vm.modelInfo.collectAsStateWithLifecycle()
     val progress by vm.progress.collectAsStateWithLifecycle()
     val quarantined by vm.quarantined.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
@@ -96,9 +98,12 @@ private fun App(vm: MainViewModel) {
             when (tab) {
                 0 -> ScanScreen(
                     summary = summary,
+                    model = model,
                     threshold = threshold,
+                    includeDocuments = includeDocuments,
                     busy = busy,
-                    onThreshold = { vm.threshold.value = it },
+                    onThreshold = vm::setThreshold,
+                    onIncludeDocuments = vm::setIncludeDocuments,
                     onScan = vm::scan,
                     onMove = { vm.moveCandidates(); tab = 1 },
                 )

@@ -1,13 +1,18 @@
 package de.drepp.picturecleaner.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import coil.imageLoader
 import de.drepp.picturecleaner.classify.ClipClassifier
+import de.drepp.picturecleaner.classify.Ranker
+import de.drepp.picturecleaner.classify.toBytes
+import de.drepp.picturecleaner.classify.toFloats
 import de.drepp.picturecleaner.data.AppDatabase
 import de.drepp.picturecleaner.data.ImageEntry
 import de.drepp.picturecleaner.data.ImageState
+import de.drepp.picturecleaner.data.Label
 import de.drepp.picturecleaner.files.Quarantine
 import de.drepp.picturecleaner.files.Sources
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +23,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -28,46 +35,99 @@ data class ScanSummary(
     val candidates: Int = 0,
     val candidateBytes: Long = 0,
     val kept: Int = 0,
+    val missingEmbeddings: Int = 0,
 )
 
-class MainViewModel(app: Application) : AndroidViewModel(app) {
-    private val dao = AppDatabase.get(app).images()
-    private val quarantine = Quarantine(app)
+data class ModelInfo(val junk: Int = 0, val keep: Int = 0, val personalWeight: Float = 0f)
 
-    val threshold = MutableStateFlow(DEFAULT_THRESHOLD)
+class MainViewModel(app: Application) : AndroidViewModel(app) {
+    private val db = AppDatabase.get(app)
+    private val dao = db.images()
+    private val labels = db.labels()
+    private val quarantine = Quarantine(app)
+    private val prefs = app.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    private val scorer by lazy { ClipClassifier.loadScorer(app) }
+    private val rankLock = Mutex()
+
+    val threshold = MutableStateFlow(prefs.getFloat(KEY_THRESHOLD, DEFAULT_THRESHOLD))
+    val includeDocuments = MutableStateFlow(prefs.getBoolean(KEY_DOCUMENTS, true))
     val progress = MutableStateFlow<Progress?>(null)
     val selected = MutableStateFlow<Set<Long>>(emptySet())
     val message = MutableStateFlow<String?>(null)
+    private val personalWeight = MutableStateFlow(0f)
 
-    val summary: StateFlow<ScanSummary> = combine(dao.observeScored(), dao.observeKeptCount(), threshold) { scored, kept, t ->
+    val summary: StateFlow<ScanSummary> = combine(
+        dao.observeScored(), dao.observeKeptCount(), dao.observeMissingEmbeddings(), threshold,
+    ) { scored, kept, missing, t ->
         val hits = scored.filter { it.score >= t }
-        ScanSummary(scored.size, hits.size, hits.sumOf { it.sizeBytes }, kept)
+        ScanSummary(scored.size, hits.size, hits.sumOf { it.sizeBytes }, kept, missing)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ScanSummary())
+
+    val modelInfo: StateFlow<ModelInfo> = combine(labels.observeCounts(), personalWeight) { counts, w ->
+        ModelInfo(
+            junk = counts.firstOrNull { it.junk }?.count ?: 0,
+            keep = counts.firstOrNull { !it.junk }?.count ?: 0,
+            personalWeight = w,
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, ModelInfo())
 
     val quarantined: StateFlow<List<ImageEntry>> =
         dao.observeQuarantined().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    fun setThreshold(value: Float) {
+        threshold.value = value
+        prefs.edit().putFloat(KEY_THRESHOLD, value).apply()
+    }
+
+    fun setIncludeDocuments(value: Boolean) {
+        includeDocuments.value = value
+        prefs.edit().putBoolean(KEY_DOCUMENTS, value).apply()
+        runBusy { rescoreAll() }
+    }
+
     fun scan() = runBusy {
         val known = dao.knownPaths().toHashSet()
-        val files = Sources.listImages().filter { it.path !in known }
-        progress.value = Progress("Проверка", 0, files.size)
+        val newFiles = Sources.listImages().filter { it.path !in known }
+        val missing = dao.withoutEmbedding().filter { File(it.currentPath).exists() }
+        val total = newFiles.size + missing.size
+        var done = 0
+        val ranker = buildRanker()
+
         ClipClassifier(getApplication()).use { classifier ->
-            files.chunked(BATCH).forEachIndexed { i, batch ->
+            newFiles.chunked(BATCH).forEach { batch ->
                 val entries = batch.map { file ->
-                    val score = runCatching { classifier.generatedScore(file) }.getOrNull() ?: UNREADABLE
+                    val embedding = runCatching { classifier.embed(file) }.getOrNull()
                     ImageEntry(
                         originalPath = file.path,
                         currentPath = file.path,
                         sizeBytes = file.length(),
-                        score = score,
+                        score = embedding?.let(ranker::score) ?: UNREADABLE,
                         state = ImageState.SCORED,
+                        embedding = embedding?.toBytes(),
                     )
                 }
                 dao.insertAll(entries)
-                progress.value = Progress("Проверка", minOf((i + 1) * BATCH, files.size), files.size)
+                done += batch.size
+                progress.value = Progress("Проверка", done, total)
+            }
+
+            missing.chunked(BATCH).forEach { batch ->
+                val updated = batch.map { entry ->
+                    val embedding = runCatching { classifier.embed(File(entry.currentPath)) }.getOrNull()
+                    if (embedding == null) entry.copy(score = UNREADABLE)
+                    else entry.copy(embedding = embedding.toBytes(), score = ranker.score(embedding))
+                }
+                dao.updateAll(updated)
+                labels.upsert(
+                    updated.filter { it.state == ImageState.KEPT && it.embedding != null }
+                        .map { Label(it.originalPath, it.embedding!!, junk = false) },
+                )
+                done += batch.size
+                progress.value = Progress("Проверка", done, total)
             }
         }
-        message.value = "Проверено новых картинок: ${files.size}"
+        rescoreAll()
+        message.value = "Проверено картинок: $total"
     }
 
     fun moveCandidates() = runBusy {
@@ -90,29 +150,56 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun restoreSelected() = runBusy {
         val ids = selected.value
         val entries = dao.quarantined().filter { it.id in ids }
+        val decided = mutableListOf<Label>()
         entries.forEachIndexed { i, entry ->
             progress.value = Progress("Возврат", i, entries.size)
-            val back = quarantine.moveBack(File(entry.currentPath), entry.originalPath)
-            if (back != null) dao.update(entry.copy(currentPath = back.path, state = ImageState.KEPT))
+            val back = quarantine.moveBack(File(entry.currentPath), entry.originalPath) ?: return@forEachIndexed
+            dao.update(entry.copy(currentPath = back.path, state = ImageState.KEPT))
+            entry.embedding?.let { decided += Label(entry.originalPath, it, junk = false) }
         }
+        labels.upsert(decided)
         selected.value = emptySet()
-        message.value = "Возвращено: ${entries.size}"
+        rescoreAll()
+        message.value = "Возвращено: ${entries.size}. Модель учтёт это при следующем отборе."
     }
 
     fun deleteAllQuarantined() = runBusy {
-        val entries = dao.quarantined()
+        val entries = withEmbeddings(dao.quarantined())
         var freed = 0L
+        var deleted = 0
+        val decided = mutableListOf<Label>()
         entries.forEachIndexed { i, entry ->
             progress.value = Progress("Удаление", i, entries.size)
             val file = File(entry.currentPath)
             val size = file.length()
             if (quarantine.delete(file)) {
                 freed += size
+                deleted++
+                entry.embedding?.let { decided += Label(entry.originalPath, it, junk = true) }
                 dao.delete(entry.id)
             }
         }
+        labels.upsert(decided)
         selected.value = emptySet()
-        message.value = "Удалено ${entries.size}, освобождено ${formatBytes(freed)}"
+        rescoreAll()
+        message.value = "Удалено $deleted, освобождено ${formatBytes(freed)}"
+    }
+
+    /** Досчитывает эмбеддинги перед удалением: после удаления файла метку уже не получить. */
+    private suspend fun withEmbeddings(entries: List<ImageEntry>): List<ImageEntry> {
+        val missing = entries.filter { it.embedding == null && File(it.currentPath).exists() }
+        if (missing.isEmpty()) return entries
+        val filled = HashMap<Long, ImageEntry>()
+        ClipClassifier(getApplication()).use { classifier ->
+            missing.forEachIndexed { i, entry ->
+                progress.value = Progress("Подготовка к удалению", i, missing.size)
+                runCatching { classifier.embed(File(entry.currentPath)) }.getOrNull()?.let {
+                    filled[entry.id] = entry.copy(embedding = it.toBytes())
+                }
+            }
+        }
+        dao.updateAll(filled.values.toList())
+        return entries.map { filled[it.id] ?: it }
     }
 
     /** Подхватывает правки, сделанные мимо приложения (например, в Галерее). */
@@ -122,15 +209,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (File(entry.currentPath).exists()) continue
             if (File(entry.originalPath).exists()) {
                 dao.update(entry.copy(currentPath = entry.originalPath, state = ImageState.KEPT))
+                entry.embedding?.let { labels.upsert(listOf(Label(entry.originalPath, it, junk = false))) }
             } else {
                 dao.delete(entry.id)
             }
         }
+        if (!rankerReady) {
+            rankerReady = true
+            rescoreAll()
+        }
     }
 
+    private var rankerReady = false
+
     /**
-     * Картинки из исключённых папок (закрытые чаты) возвращаются на место и
-     * забываются целиком: ни записи в базе, ни миниатюры в кэше.
+     * Картинки из исключённых папок возвращаются на место и забываются
+     * целиком: ни записи в базе, ни метки, ни миниатюры в кэше.
      */
     private suspend fun purgeExcluded() {
         val excluded = dao.all().filter { Sources.isExcluded(it.originalPath) }
@@ -145,10 +239,30 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
             dao.delete(entry.id)
+            labels.delete(entry.originalPath)
         }
         getApplication<Application>().imageLoader.diskCache?.clear()
         getApplication<Application>().imageLoader.memoryCache?.clear()
-        if (restored > 0) message.value = "Возвращено из карантина в закрытые чаты: $restored"
+        if (restored > 0) message.value = "Возвращено из карантина в исключённые папки: $restored"
+    }
+
+    private suspend fun buildRanker(): Ranker = withContext(Dispatchers.Default) {
+        val all = labels.all()
+        Ranker.build(scorer, includeDocuments.value, all.map { it.embedding.toFloats() }, all.map { it.junk })
+            .also { personalWeight.value = it.personalWeight }
+    }
+
+    /** Переобучает персональную модель и пересчитывает баллы по сохранённым эмбеддингам. */
+    private suspend fun rescoreAll() = rankLock.withLock {
+        val ranker = buildRanker()
+        val rows = dao.withEmbedding()
+        val updated = withContext(Dispatchers.Default) {
+            rows.mapNotNull { entry ->
+                val score = ranker.score(entry.embedding!!.toFloats())
+                if (score != entry.score) entry.copy(score = score) else null
+            }
+        }
+        updated.chunked(500).forEach { dao.updateAll(it) }
     }
 
     fun toggle(id: Long) = selected.update { if (id in it) it - id else it + id }
@@ -175,6 +289,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         const val DEFAULT_THRESHOLD = 0.5f
         const val UNREADABLE = -1f
         private const val BATCH = 16
+        private const val KEY_THRESHOLD = "threshold"
+        private const val KEY_DOCUMENTS = "includeDocuments"
     }
 }
 
