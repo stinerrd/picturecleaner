@@ -7,8 +7,12 @@ Android-приложение: находит в мессенджерных па�
 ## Как работает
 
 - Источники (`files/Sources.kt`): `Android/media/com.whatsapp/.../WhatsApp Images`
-  (вместе с `Sent` и `Private`), `Pictures/Viber`, `Pictures/Telegram`,
-  `Pictures/ChatGPT`. `DCIM/Camera` и скриншоты не сканируются намеренно.
+  (вместе с `Sent`), `Pictures/Viber`, `Pictures/Telegram`, `Pictures/ChatGPT`.
+  `DCIM/Camera` и скриншоты не сканируются намеренно.
+- `WhatsApp Images/Private` — медиа заблокированных чатов — исключена
+  (`Sources.isExcluded`). Если запись оттуда всё же есть в базе, `purgeExcluded`
+  при запуске возвращает файл на место и стирает запись и кэш миниатюр:
+  карантин виден в Галерее, а закрытый чат там появляться не должен.
 - Классификатор: MobileCLIP2-S0, zero-shot по трём группам промптов
   (photo / generated / document). Балл = сумма softmax-вероятностей группы
   `generated`. Группа `document` нужна, чтобы скриншоты, сканы и расписания не

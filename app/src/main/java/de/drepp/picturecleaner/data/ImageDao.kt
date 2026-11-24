@@ -33,6 +33,9 @@ interface ImageDao {
     @Query("SELECT * FROM images WHERE state = 'QUARANTINED'")
     suspend fun quarantined(): List<ImageEntry>
 
+    @Query("SELECT * FROM images")
+    suspend fun all(): List<ImageEntry>
+
     @Query("SELECT COUNT(*) FROM images WHERE state = 'KEPT'")
     fun observeKeptCount(): Flow<Int>
 }

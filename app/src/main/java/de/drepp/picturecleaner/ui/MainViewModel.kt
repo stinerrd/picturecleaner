@@ -3,6 +3,7 @@ package de.drepp.picturecleaner.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import coil.imageLoader
 import de.drepp.picturecleaner.classify.ClipClassifier
 import de.drepp.picturecleaner.data.AppDatabase
 import de.drepp.picturecleaner.data.ImageEntry
@@ -116,6 +117,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Подхватывает правки, сделанные мимо приложения (например, в Галерее). */
     fun syncQuarantine() = viewModelScope.launch(Dispatchers.IO) {
+        purgeExcluded()
         for (entry in dao.quarantined()) {
             if (File(entry.currentPath).exists()) continue
             if (File(entry.originalPath).exists()) {
@@ -124,6 +126,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 dao.delete(entry.id)
             }
         }
+    }
+
+    /**
+     * Картинки из исключённых папок (закрытые чаты) возвращаются на место и
+     * забываются целиком: ни записи в базе, ни миниатюры в кэше.
+     */
+    private suspend fun purgeExcluded() {
+        val excluded = dao.all().filter { Sources.isExcluded(it.originalPath) }
+        if (excluded.isEmpty()) return
+        var restored = 0
+        for (entry in excluded) {
+            if (entry.state == ImageState.QUARANTINED && entry.currentPath != entry.originalPath) {
+                val current = File(entry.currentPath)
+                if (current.exists()) {
+                    if (quarantine.moveBack(current, entry.originalPath) == null) continue
+                    restored++
+                }
+            }
+            dao.delete(entry.id)
+        }
+        getApplication<Application>().imageLoader.diskCache?.clear()
+        getApplication<Application>().imageLoader.memoryCache?.clear()
+        if (restored > 0) message.value = "Возвращено из карантина в закрытые чаты: $restored"
     }
 
     fun toggle(id: Long) = selected.update { if (id in it) it - id else it + id }

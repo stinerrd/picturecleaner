@@ -16,10 +16,15 @@ object Sources {
 
     private val extensions = setOf("jpg", "jpeg", "png", "webp")
 
+    /** Медиа заблокированных чатов WhatsApp: их не сканируем и не трогаем. */
+    private val excludedDirs = listOf("/WhatsApp Images/Private/")
+
+    fun isExcluded(path: String): Boolean = excludedDirs.any { path.contains(it) }
+
     fun listImages(): List<File> = folders.filter { it.isDirectory }.flatMap { dir ->
         dir.walkTopDown()
-            .onEnter { !it.name.startsWith(".") }
-            .filter { it.isFile && !it.name.startsWith(".") && it.extension.lowercase() in extensions }
+            .onEnter { !it.name.startsWith(".") && !isExcluded(it.path + "/") }
+            .filter { it.isFile && !it.name.startsWith(".") && it.extension.lowercase() in extensions && !isExcluded(it.path) }
             .toList()
     }
 }
