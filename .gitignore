@@ -1,0 +1,11 @@
+.gradle/
+build/
+local.properties
+*.apk
+calibration/data/
+calibration/.venv/
+calibration/out/
+__pycache__/
+calibration/all_files.txt
+calibration/sample.txt
+calibration/out_log.txt
