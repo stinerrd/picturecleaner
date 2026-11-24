@@ -71,6 +71,7 @@ dependencies {
 
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.20.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("io.coil-kt:coil-video:2.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     testImplementation("junit:junit:4.13.2")

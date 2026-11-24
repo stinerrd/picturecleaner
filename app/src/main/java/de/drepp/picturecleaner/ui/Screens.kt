@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,9 +41,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import android.widget.VideoView
 import coil.compose.AsyncImage
+import de.drepp.picturecleaner.files.Sources
 import de.drepp.picturecleaner.data.ImageEntry
 import java.io.File
 
@@ -77,7 +81,7 @@ fun ScanScreen(
         Modifier.padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Папки: WhatsApp Images (без закрытых чатов и отправленных), Viber, Telegram, ChatGPT", style = MaterialTheme.typography.bodySmall)
+        Text("Папки: WhatsApp (картинки, видео, GIF — без закрытых чатов и отправленных), Viber, Telegram, ChatGPT", style = MaterialTheme.typography.bodySmall)
         Text("Проверено картинок: ${summary.scored}")
         if (summary.kept > 0) Text("Оставлено после просмотра: ${summary.kept}", style = MaterialTheme.typography.bodySmall)
         if (summary.missingEmbeddings > 0) {
@@ -175,6 +179,14 @@ fun QuarantineScreen(
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.align(Alignment.BottomStart).background(Color(0x88000000)).padding(horizontal = 3.dp),
                     )
+                    if (Sources.isVideo(entry.currentPath)) {
+                        Icon(
+                            Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.align(Alignment.Center).background(Color(0x88000000), MaterialTheme.shapes.extraLarge),
+                        )
+                    }
                     if (isSelected) {
                         Icon(
                             Icons.Filled.CheckCircle,
@@ -191,12 +203,25 @@ fun QuarantineScreen(
     preview?.let { entry ->
         Dialog(onDismissRequest = { preview = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Column(Modifier.fillMaxSize().background(Color.Black)) {
-                AsyncImage(
-                    model = File(entry.currentPath),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                )
+                if (Sources.isVideo(entry.currentPath)) {
+                    AndroidView(
+                        factory = { context ->
+                            VideoView(context).apply {
+                                setVideoPath(entry.currentPath)
+                                setOnPreparedListener { it.isLooping = true; start() }
+                            }
+                        },
+                        onRelease = { it.stopPlayback() },
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
+                } else {
+                    AsyncImage(
+                        model = File(entry.currentPath),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
+                }
                 Text(
                     File(entry.originalPath).parentFile?.name.orEmpty() + " · " + formatBytes(entry.sizeBytes),
                     color = Color.White,
