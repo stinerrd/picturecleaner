@@ -40,6 +40,8 @@ learns from them.
 - WhatsApp **locked chats** (`Private`) and media **you sent** (`Sent`) are
   excluded in every WhatsApp section unless you turn on their switches. Files
   from locked chats then go to a hidden quarantine that the Gallery never shows.
+  The locked chats switch appears only when the phone has locked chat media
+  (WhatsApp and WhatsApp Business; other messengers keep it in app-private storage).
 - Nothing is deleted without your review. The quarantine is always in between.
 
 ## Requirements

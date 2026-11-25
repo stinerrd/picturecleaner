@@ -14,13 +14,13 @@
     <string name="progress_deleting">Удаление</string>
     <string name="progress_preparing_delete">Подготовка к удалению</string>
 
-    <string name="scan_folders">Папки: WhatsApp (картинки, видео, GIF), Viber, Telegram, ChatGPT</string>
+    <string name="scan_folders">Папки: WhatsApp и WhatsApp Business (картинки, видео, GIF), Viber, Telegram, ChatGPT</string>
     <string name="scan_checked">Проверено файлов: %1$d</string>
     <string name="scan_kept">Оставлено после просмотра: %1$d</string>
     <string name="scan_missing_embeddings">Файлов, проверенных старой версией: %1$d. Нажми «Проверить», чтобы модель могла на них учиться.</string>
     <string name="scan_button">Проверить</string>
     <string name="scan_documents_switch">Скриншоты, флаеры, меню, документы — тоже мусор</string>
-    <string name="scan_private_switch">Проверять закрытые чаты WhatsApp</string>
+    <string name="scan_private_switch">Проверять закрытые чаты</string>
     <string name="scan_sent_switch">Проверять отправленное мной в WhatsApp</string>
     <string name="scan_private_hint">Файлы из закрытых чатов уходят в скрытый карантин и в Галерее не появляются.</string>
     <string name="model_untrained">Модель пока не обучена: учится на том, что ты удаляешь и возвращаешь.</string>

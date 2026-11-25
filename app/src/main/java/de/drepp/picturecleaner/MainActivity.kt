@@ -70,6 +70,7 @@ private fun App(vm: MainViewModel) {
     val threshold by vm.threshold.collectAsStateWithLifecycle()
     val includeDocuments by vm.includeDocuments.collectAsStateWithLifecycle()
     val scope by vm.scope.collectAsStateWithLifecycle()
+    val hasLockedChats by vm.hasLockedChats.collectAsStateWithLifecycle()
     val model by vm.modelInfo.collectAsStateWithLifecycle()
     val progress by vm.progress.collectAsStateWithLifecycle()
     val quarantined by vm.quarantined.collectAsStateWithLifecycle()
@@ -102,6 +103,7 @@ private fun App(vm: MainViewModel) {
                     threshold = threshold,
                     includeDocuments = includeDocuments,
                     scope = scope,
+                    hasLockedChats = hasLockedChats,
                     busy = busy,
                     onThreshold = vm::setThreshold,
                     onIncludeDocuments = vm::setIncludeDocuments,

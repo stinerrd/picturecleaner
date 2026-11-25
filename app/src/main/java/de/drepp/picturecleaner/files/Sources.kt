@@ -26,13 +26,19 @@ data class SourceScope(val includePrivate: Boolean = false, val includeSent: Boo
 
 object Sources {
     private val root get() = Environment.getExternalStorageDirectory()
-    private val whatsapp get() = File(root, "Android/media/com.whatsapp/WhatsApp/Media")
+    private val whatsappSections: List<File>
+        get() = listOf(
+            "com.whatsapp" to "WhatsApp",
+            "com.whatsapp.w4b" to "WhatsApp Business",
+        ).flatMap { (pkg, name) ->
+            val media = File(root, "Android/media/$pkg/$name/Media")
+            listOf("Images", "Video", "Animated Gifs").map { File(media, "$name $it") }
+        }
+
+    private val lockedChatFolders: List<File> get() = whatsappSections.map { File(it, "Private") }
 
     val folders: List<File>
-        get() = listOf(
-            File(whatsapp, "WhatsApp Images"),
-            File(whatsapp, "WhatsApp Video"),
-            File(whatsapp, "WhatsApp Animated Gifs"),
+        get() = whatsappSections + listOf(
             File(root, "Pictures/Viber"),
             File(root, "Movies/Viber"),
             File(root, "Pictures/Telegram"),
@@ -54,6 +60,13 @@ object Sources {
 
     fun isPrivate(path: String): Boolean = privateFolder.containsMatchIn(path)
 
+    fun hasLockedChatMedia(): Boolean = lockedChatFolders.any { dir ->
+        dir.isDirectory && dir.walkTopDown().any { isMedia(it) }
+    }
+
+    private fun isMedia(file: File): Boolean = file.isFile && !file.name.startsWith(".") &&
+        file.extension.lowercase().let { it in imageExtensions || it in videoExtensions }
+
     fun isExcluded(path: String, scope: SourceScope): Boolean =
         (!scope.includePrivate && isPrivate(path)) || (!scope.includeSent && sentFolder.containsMatchIn(path))
 
@@ -73,10 +86,7 @@ object Sources {
     fun listImages(scope: SourceScope): List<File> = folders.filter { it.isDirectory }.flatMap { dir ->
         dir.walkTopDown()
             .onEnter { !it.name.startsWith(".") && !isExcluded(it.path + "/", scope) }
-            .filter {
-                it.isFile && !it.name.startsWith(".") && !isExcluded(it.path, scope) &&
-                    it.extension.lowercase().let { ext -> ext in imageExtensions || ext in videoExtensions }
-            }
+            .filter { isMedia(it) && !isExcluded(it.path, scope) }
             .toList()
     }
 }

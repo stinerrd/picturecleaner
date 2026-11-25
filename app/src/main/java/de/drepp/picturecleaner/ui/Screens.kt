@@ -76,6 +76,7 @@ fun ScanScreen(
     threshold: Float,
     includeDocuments: Boolean,
     scope: SourceScope,
+    hasLockedChats: Boolean,
     busy: Boolean,
     onThreshold: (Float) -> Unit,
     onIncludeDocuments: (Boolean) -> Unit,
@@ -105,9 +106,11 @@ fun ScanScreen(
             Text(stringResource(R.string.scan_documents_switch), modifier = Modifier.weight(1f))
             Switch(checked = includeDocuments, onCheckedChange = onIncludeDocuments, enabled = !busy)
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.scan_private_switch), modifier = Modifier.weight(1f))
-            Switch(checked = scope.includePrivate, onCheckedChange = onIncludePrivate, enabled = !busy)
+        if (hasLockedChats || scope.includePrivate) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.scan_private_switch), modifier = Modifier.weight(1f))
+                Switch(checked = scope.includePrivate, onCheckedChange = onIncludePrivate, enabled = !busy)
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.scan_sent_switch), modifier = Modifier.weight(1f))

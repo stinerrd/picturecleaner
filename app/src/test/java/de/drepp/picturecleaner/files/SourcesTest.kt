@@ -33,6 +33,11 @@ class SourcesTest {
     @Test
     fun recognisesLockedChatFolders() {
         assertTrue(Sources.isPrivate("$media/WhatsApp Video/Private/VID-1.mp4"))
+        assertTrue(
+            Sources.isPrivate(
+                "/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Images/Private/IMG-1.jpg",
+            ),
+        )
         assertFalse(Sources.isPrivate("$media/WhatsApp Video/Sent/VID-1.mp4"))
         assertFalse(Sources.isPrivate("/storage/emulated/0/Pictures/Viber/Private_card.jpg"))
     }

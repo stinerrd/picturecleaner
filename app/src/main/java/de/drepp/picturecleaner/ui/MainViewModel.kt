@@ -54,6 +54,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val threshold = MutableStateFlow(prefs.getFloat(KEY_THRESHOLD, DEFAULT_THRESHOLD))
     val includeDocuments = MutableStateFlow(scoring.includeDocuments)
     val scope = MutableStateFlow(SourceScope.load(app))
+    val hasLockedChats = MutableStateFlow(false)
     val progress = MutableStateFlow<Progress?>(null)
     val selected = MutableStateFlow<Set<Long>>(emptySet())
     val message = MutableStateFlow<String?>(null)
@@ -240,6 +241,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Подхватывает правки, сделанные мимо приложения (например, в Галерее). */
     fun syncQuarantine() = viewModelScope.launch(Dispatchers.IO) {
         quarantine.protectHidden()
+        hasLockedChats.value = Sources.hasLockedChatMedia()
         purgeExcluded()
         for (entry in dao.quarantined()) {
             if (File(entry.currentPath).exists()) continue

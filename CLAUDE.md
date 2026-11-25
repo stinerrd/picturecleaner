@@ -6,8 +6,9 @@ Android-приложение: находит в мессенджерных па�
 
 ## Как работает
 
-- Источники (`files/Sources.kt`): в `Android/media/com.whatsapp/.../Media` —
-  `WhatsApp Images`, `WhatsApp Video`, `WhatsApp Animated Gifs`; плюс
+- Источники (`files/Sources.kt`): в `Android/media/com.whatsapp/.../Media` и
+  `Android/media/com.whatsapp.w4b/.../Media` (WhatsApp Business) — разделы
+  `Images`, `Video`, `Animated Gifs`; плюс
   `Pictures|Movies/Viber`, `Pictures|Movies/Telegram`, `Pictures/ChatGPT`.
   `DCIM/Camera` и скриншоты не сканируются намеренно.
 - `Private` (медиа заблокированных чатов) и `Sent` (отправленное самим
@@ -16,6 +17,12 @@ Android-приложение: находит в мессенджерных па�
   (`SourceScope`, ключи `includePrivate` / `includeSent` в prefs `settings`).
   Выключил переключатель — `purgeExcluded` возвращает файлы этой папки из
   карантина на место и стирает запись, метку и кэш миниатюр; при запуске то же.
+- Закрытые чаты, до которых вообще можно добраться, есть только у WhatsApp и
+  WhatsApp Business (`Private`). Секретные чаты Telegram, скрытые чаты Viber и
+  Signal хранят медиа во внутренней памяти приложения — без root недоступно.
+  Новый мессенджер с такой папкой добавляется в `Sources.lockedChatFolders`.
+  Переключатель закрытых чатов показывается, только если там есть медиа
+  (`Sources.hasLockedChatMedia`, проверка при каждом `onResume`) или он уже включён.
 - Файлы из `Private` уходят не в общий карантин, а в
   `Pictures/.PictureCleanerPrivate` с `.nomedia`, и MediaScanner для них и
   для их исходного пути не вызывается (`Quarantine.rescan`): закрытый чат в
