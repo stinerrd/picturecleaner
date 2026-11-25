@@ -14,12 +14,15 @@
     <string name="progress_deleting">Löschen</string>
     <string name="progress_preparing_delete">Löschen wird vorbereitet</string>
 
-    <string name="scan_folders">Ordner: WhatsApp (Bilder, Videos, GIFs — ohne gesperrte Chats und Gesendetes), Viber, Telegram, ChatGPT</string>
+    <string name="scan_folders">Ordner: WhatsApp (Bilder, Videos, GIFs), Viber, Telegram, ChatGPT</string>
     <string name="scan_checked">Geprüfte Dateien: %1$d</string>
     <string name="scan_kept">Nach Durchsicht behalten: %1$d</string>
     <string name="scan_missing_embeddings">Von einer älteren Version geprüfte Dateien: %1$d. Tippe auf „Prüfen“, damit das Modell daraus lernen kann.</string>
     <string name="scan_button">Prüfen</string>
     <string name="scan_documents_switch">Screenshots, Flyer, Speisekarten, Dokumente sind auch Müll</string>
+    <string name="scan_private_switch">Gesperrte WhatsApp-Chats prüfen</string>
+    <string name="scan_sent_switch">Von mir gesendete WhatsApp-Medien prüfen</string>
+    <string name="scan_private_hint">Dateien aus gesperrten Chats landen in einer versteckten Quarantäne und erscheinen nie in der Galerie.</string>
     <string name="model_untrained">Das Modell ist noch nicht trainiert: Es lernt aus dem, was du löschst und wiederherstellst.</string>
     <string name="model_stats">Training: gelöscht %1$d, behalten %2$d, Kamerabeispiele %3$d. Gewicht des trainierten Modells: %4$d%%</string>
     <string name="model_needs_more">(mindestens je 10 nötig)</string>

@@ -43,6 +43,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import de.drepp.picturecleaner.R
+import de.drepp.picturecleaner.files.SourceScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -74,9 +75,12 @@ fun ScanScreen(
     model: ModelInfo,
     threshold: Float,
     includeDocuments: Boolean,
+    scope: SourceScope,
     busy: Boolean,
     onThreshold: (Float) -> Unit,
     onIncludeDocuments: (Boolean) -> Unit,
+    onIncludePrivate: (Boolean) -> Unit,
+    onIncludeSent: (Boolean) -> Unit,
     onScan: () -> Unit,
     onMove: () -> Unit,
 ) {
@@ -100,6 +104,17 @@ fun ScanScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.scan_documents_switch), modifier = Modifier.weight(1f))
             Switch(checked = includeDocuments, onCheckedChange = onIncludeDocuments, enabled = !busy)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.scan_private_switch), modifier = Modifier.weight(1f))
+            Switch(checked = scope.includePrivate, onCheckedChange = onIncludePrivate, enabled = !busy)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.scan_sent_switch), modifier = Modifier.weight(1f))
+            Switch(checked = scope.includeSent, onCheckedChange = onIncludeSent, enabled = !busy)
+        }
+        if (scope.includePrivate) {
+            Text(stringResource(R.string.scan_private_hint), style = MaterialTheme.typography.bodySmall)
         }
         Text(
             if (model.junk + model.keep == 0) stringResource(R.string.model_untrained)

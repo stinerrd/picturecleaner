@@ -38,7 +38,8 @@ learns from them.
 - `DCIM/Camera` and screenshots are not scanned. Camera photos are only used
   as "keep" examples for the model.
 - WhatsApp **locked chats** (`Private`) and media **you sent** (`Sent`) are
-  excluded in every WhatsApp section.
+  excluded in every WhatsApp section unless you turn on their switches. Files
+  from locked chats then go to a hidden quarantine that the Gallery never shows.
 - Nothing is deleted without your review. The quarantine is always in between.
 
 ## Requirements

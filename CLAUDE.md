@@ -10,10 +10,16 @@ Android-приложение: находит в мессенджерных па�
   `WhatsApp Images`, `WhatsApp Video`, `WhatsApp Animated Gifs`; плюс
   `Pictures|Movies/Viber`, `Pictures|Movies/Telegram`, `Pictures/ChatGPT`.
   `DCIM/Camera` и скриншоты не сканируются намеренно.
-- Исключены (`Sources.isExcluded`): `Private` (медиа заблокированных чатов)
-  и `Sent` (отправленное самим владельцем) в любом разделе `WhatsApp <...>`. Если запись оттуда есть в базе, `purgeExcluded` при запуске
-  возвращает файл на место и стирает запись, метку и кэш миниатюр: карантин
-  виден в Галерее, а закрытый чат там появляться не должен.
+- `Private` (медиа заблокированных чатов) и `Sent` (отправленное самим
+  владельцем) в любом разделе `WhatsApp <...>` по умолчанию исключены
+  (`Sources.isExcluded`). Каждую папку включает свой переключатель
+  (`SourceScope`, ключи `includePrivate` / `includeSent` в prefs `settings`).
+  Выключил переключатель — `purgeExcluded` возвращает файлы этой папки из
+  карантина на место и стирает запись, метку и кэш миниатюр; при запуске то же.
+- Файлы из `Private` уходят не в общий карантин, а в
+  `Pictures/.PictureCleanerPrivate` с `.nomedia`, и MediaScanner для них и
+  для их исходного пути не вызывается (`Quarantine.rescan`): закрытый чат в
+  Галерее появляться не должен. `Sent` идёт в обычный карантин.
 - Классификатор: MobileCLIP2-S0, эмбеддинг каждой картинки хранится в
   `images.embedding` (512 float, little-endian). Старт — zero-shot по трём
   группам промптов (photo / generated / document): балл = вероятность

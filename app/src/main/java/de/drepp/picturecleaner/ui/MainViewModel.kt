@@ -18,6 +18,7 @@ import de.drepp.picturecleaner.data.ImageEntry
 import de.drepp.picturecleaner.data.ImageState
 import de.drepp.picturecleaner.data.Label
 import de.drepp.picturecleaner.files.Quarantine
+import de.drepp.picturecleaner.files.SourceScope
 import de.drepp.picturecleaner.files.Sources
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +53,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val threshold = MutableStateFlow(prefs.getFloat(KEY_THRESHOLD, DEFAULT_THRESHOLD))
     val includeDocuments = MutableStateFlow(scoring.includeDocuments)
+    val scope = MutableStateFlow(SourceScope.load(app))
     val progress = MutableStateFlow<Progress?>(null)
     val selected = MutableStateFlow<Set<Long>>(emptySet())
     val message = MutableStateFlow<String?>(null)
@@ -87,9 +89,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         runBusy { rescoreAll() }
     }
 
+    fun setIncludePrivate(value: Boolean) = updateScope(scope.value.copy(includePrivate = value))
+
+    fun setIncludeSent(value: Boolean) = updateScope(scope.value.copy(includeSent = value))
+
+    private fun updateScope(value: SourceScope) {
+        val narrowed = (scope.value.includePrivate && !value.includePrivate) || (scope.value.includeSent && !value.includeSent)
+        scope.value = value
+        value.save(getApplication())
+        if (narrowed) runBusy {
+            purgeExcluded()
+            rescoreAll()
+        }
+    }
+
     fun scan() = runBusy {
         val known = dao.knownPaths().toHashSet()
-        val newFiles = Sources.listImages().filter { it.path !in known }
+        val newFiles = Sources.listImages(scope.value).filter { it.path !in known }
         val missing = dao.withoutEmbedding().filter { File(it.currentPath).exists() }
         val labeled = labels.all().map { it.originalPath }.toHashSet()
         val haveReferences = labeled.count(Sources::isReference)
@@ -223,6 +239,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Подхватывает правки, сделанные мимо приложения (например, в Галерее). */
     fun syncQuarantine() = viewModelScope.launch(Dispatchers.IO) {
+        quarantine.protectHidden()
         purgeExcluded()
         for (entry in dao.quarantined()) {
             if (File(entry.currentPath).exists()) continue
@@ -241,7 +258,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * целиком: ни записи в базе, ни метки, ни миниатюры в кэше.
      */
     private suspend fun purgeExcluded() {
-        val excluded = dao.all().filter { Sources.isExcluded(it.originalPath) }
+        val excluded = dao.all().filter { Sources.isExcluded(it.originalPath, scope.value) }
         if (excluded.isEmpty()) return
         var restored = 0
         for (entry in excluded) {

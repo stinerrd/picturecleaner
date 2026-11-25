@@ -14,12 +14,15 @@
     <string name="progress_deleting">Deleting</string>
     <string name="progress_preparing_delete">Preparing to delete</string>
 
-    <string name="scan_folders">Folders: WhatsApp (images, videos, GIFs — except locked chats and sent media), Viber, Telegram, ChatGPT</string>
+    <string name="scan_folders">Folders: WhatsApp (images, videos, GIFs), Viber, Telegram, ChatGPT</string>
     <string name="scan_checked">Checked files: %1$d</string>
     <string name="scan_kept">Kept after review: %1$d</string>
     <string name="scan_missing_embeddings">%1$d files were checked by an older version — tap “Check files” so the model can learn from them.</string>
     <string name="scan_button">Check files</string>
     <string name="scan_documents_switch">Screenshots, flyers, menus, documents are junk too</string>
+    <string name="scan_private_switch">Include WhatsApp locked chats</string>
+    <string name="scan_sent_switch">Include media I sent on WhatsApp</string>
+    <string name="scan_private_hint">Files from locked chats go to a hidden quarantine and never show up in the Gallery.</string>
     <string name="model_untrained">The model is not trained yet: it learns from what you delete and restore.</string>
     <string name="model_stats">Training: deleted %1$d, kept %2$d, camera samples %3$d. Trained model weight: %4$d%%</string>
     <string name="model_needs_more">(needs at least 10 of each)</string>

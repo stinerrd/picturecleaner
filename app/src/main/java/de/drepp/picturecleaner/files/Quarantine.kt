@@ -6,13 +6,27 @@ import android.os.Environment
 import java.io.File
 
 class Quarantine(private val context: Context) {
-    val dir: File get() = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "PictureCleaner")
+    private val pictures: File get() = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+    val dir: File get() = File(pictures, "PictureCleaner")
+    val hiddenDir: File get() = File(pictures, ".PictureCleanerPrivate")
 
     /** Переносит файл в карантин; возвращает новый путь или null при неудаче. */
     fun moveIn(source: File): File? {
-        if (!dir.isDirectory && !dir.mkdirs()) return null
-        val target = freeName(dir, source.name)
-        return move(source, target)
+        val target = if (Sources.isPrivate(source.path)) hiddenTarget() else dir
+        if (target == null || !target.isDirectory && !target.mkdirs()) return null
+        return move(source, freeName(target, source.name))
+    }
+
+    fun protectHidden() {
+        if (hiddenDir.isDirectory) hiddenTarget()
+    }
+
+    private fun hiddenTarget(): File? {
+        val target = hiddenDir
+        if (!target.isDirectory && !target.mkdirs()) return null
+        val noMedia = File(target, ".nomedia")
+        if (!noMedia.exists() && !runCatching { noMedia.createNewFile() }.getOrDefault(false)) return null
+        return target
     }
 
     /** Возвращает файл по исходному пути (или рядом, если имя занято). */
@@ -52,6 +66,7 @@ class Quarantine(private val context: Context) {
     }
 
     private fun rescan(vararg files: File) {
-        MediaScannerConnection.scanFile(context, files.map { it.path }.toTypedArray(), null, null)
+        val visible = files.map { it.path }.filterNot { Sources.isPrivate(it) || it.startsWith(hiddenDir.path + "/") }
+        if (visible.isNotEmpty()) MediaScannerConnection.scanFile(context, visible.toTypedArray(), null, null)
     }
 }

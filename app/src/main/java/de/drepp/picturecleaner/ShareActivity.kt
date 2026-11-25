@@ -29,6 +29,7 @@ import de.drepp.picturecleaner.data.ImageEntry
 import de.drepp.picturecleaner.data.ImageState
 import de.drepp.picturecleaner.data.Label
 import de.drepp.picturecleaner.files.Quarantine
+import de.drepp.picturecleaner.files.SourceScope
 import de.drepp.picturecleaner.files.Sources
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,6 +78,7 @@ class ShareActivity : ComponentActivity() {
         val db = AppDatabase.get(this)
         val dao = db.images()
         val quarantine = Quarantine(this)
+        val scope = SourceScope.load(this)
         var moved = 0
         var excluded = 0
         var failed = 0
@@ -89,7 +91,7 @@ class ShareActivity : ComponentActivity() {
                 val file = resolveFile(uri)
                 when {
                     file == null || !file.exists() -> failed++
-                    Sources.isExcluded(file.path) -> excluded++
+                    Sources.isExcluded(file.path, scope) -> excluded++
                     else -> {
                         val existing = dao.findByPath(file.path)
                         val embedding = existing?.embedding
